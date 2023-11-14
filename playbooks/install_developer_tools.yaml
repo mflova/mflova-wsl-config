@@ -1,0 +1,139 @@
+- hosts: localhost
+  become: yes
+  tasks:
+
+- name: Get $HOME variable
+  shell: "echo $HOME"
+  become: no
+  register: HOME
+
+- name: Get $USER variable
+  shell: echo $USER
+  become: no
+  register: USER
+
+- name: Configure aliases
+  ansible.builtin.copy:
+  src: "{{playbook_dir}}/cfg/bash/.bash_aliases"
+  dest: "{{HOME.stdout_lines[0]}}/"
+
+- name: Appending data to bashrc
+  shell: "cat {{playbook_dir}}/cfg/bash/.bashrc >> ~/.bashrc"
+  become: no
+
+- name: Install terminator
+  apt:
+  name: terminator
+
+- name: Install htop
+  apt:
+  name: htop
+
+- name: Install tree
+  apt:
+  name: tree
+
+- name: Install Notion
+  snap:
+  name: notion-snap-reborn
+
+- name: Install fonts
+  ansible.builtin.copy:
+  src: "{{playbook_dir}}/cfg/NerdFonts"
+  dest: "{{HOME.stdout_lines[0]}}/.local/share/fonts"
+
+- name: Clone FZF
+  ansible.builtin.git:
+  repo: "https://github.com/junegunn/fzf.git"
+  dest: "{{playbook_dir}}/repos/fzf"
+  become: no
+
+- name: Installation FZF
+  shell: "sudo -E {{playbook_dir}}/repos/fzf/install --key-bindings --completion --update-rc"
+  become: no
+
+- name: Clone FZF marks
+  ansible.builtin.git:
+  repo: 'https://github.com/urbainvaes/fzf-marks.git'
+  dest: "{{playbook_dir}}/repos/fzf-marks"
+  become: no
+
+- name: Source FZF marks
+  shell: echo "source {{playbook_dir}}/repos/fzf-marks/fzf-marks.plugin.bash" >> ~/.bashrc
+  become: no
+
+- name: Setting up git alias for checkout
+  shell: git config --global alias.co checkout
+  become: no
+
+- name: Setting up git alias for branch
+  shell: git config --global alias.br branch
+  become: no
+
+- name: Setting up git alias for status
+  shell: git config --global alias.st status
+  become: no
+
+- name: Setting up git alias for commit
+  shell: git config --global alias.ci commit
+  become: no
+
+- name: Install ranger
+  apt:
+  name:
+  - ranger
+  - highlight
+
+- name: Install ranger image visualizer
+  apt:
+  name: w3m-img
+
+- name: Copy ranger config file
+  ansible.builtin.copy:
+  src: "{{playbook_dir}}/cfg/ranger/rc.conf"
+  dest: "{{HOME.stdout_lines[0]}}/.config/ranger/"
+  become: no
+
+- name: Set lvim as the default document viewer in ranger
+  shell: echo "export EDITOR=lvim" >> ~/.bashrc
+  become: no
+
+- name: Install fzf ranger dependencies
+  apt:
+  name:
+- findutils
+- mlocate
+
+- name: Install fzf for ranger
+  ansible.builtin.copy:
+  src: "{{playbook_dir}}/cfg/ranger/commands.py"
+  dest: "{{HOME.stdout_lines[0]}}/.config/ranger"
+  become: no
+
+- name: Install fzf marks for ranger
+  ansible.builtin.git:
+  repo: 'https://github.com/laggardkernel/ranger-fzf-marks.git'
+  dest: "{{HOME.stdout_lines[0]}}/.config/ranger/plugins/fzf-marks"
+  become: no
+
+- name: Install tool compression tool ranger
+  ansible.builtin.git:
+  repo: 'https://github.com/maximtrp/ranger-archives.git'
+  dest: "{{HOME.stdout_lines[0]}}/.config/ranger/plugins/ranger-archives"
+  become: no
+
+- name: Change ranger dir ownership
+  file:
+  path: "/home/{{USER.stdout_lines[0]}}/.config/ranger"
+  owner: "{{USER.stdout_lines[0]}}"
+  group: "{{USER.stdout_lines[0]}}"
+  recurse: yes
+
+- name: Download bat
+  get_url:
+  url: https://github.com/sharkdp/bat/releases/download/v0.21.0/bat-musl_0.21.0_amd64.deb
+  dest: /tmp
+
+- name: Install bat
+  apt:
+  deb: /tmp/bat-musl_0.21.0_amd64.deb
